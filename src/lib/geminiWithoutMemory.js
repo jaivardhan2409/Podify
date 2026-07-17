@@ -1,7 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const systemInstruction = `
 You are a podcast topic extraction AI that understands the emotion, context, or curiosity behind a user's message. 
@@ -26,23 +24,34 @@ Examples:
 
 export async function getSearchTerm(prompt) {
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-3.5-flash",
-      systemInstruction
+    const response = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 200,
+        temperature: 0.3,
+      }),
     });
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
+    const data = await response.json();
+    const text = data.choices[0].message.content;
+
     // Clean the response to extract JSON
     const jsonStart = text.indexOf('{');
     const jsonEnd = text.lastIndexOf('}') + 1;
     const jsonString = text.slice(jsonStart, jsonEnd);
-    
+
     return JSON.parse(jsonString);
   } catch (error) {
-    console.error("Error in Gemini without memory:", error);
+    console.error("Error in Groq without memory:", error);
     throw error;
   }
 }

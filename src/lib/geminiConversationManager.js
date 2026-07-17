@@ -1,7 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const systemInstruction = `
 You are a conversational AI that handles:
@@ -35,28 +33,41 @@ export async function handleConversation(
   chatHistory = []
 ) {
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-3.5-flash",
-      systemInstruction
-    });
+    // Build messages array with chat history
+    const messages = [
+      { role: "system", content: systemInstruction },
+    ];
 
-    const chat = model.startChat({
-      history: chatHistory.map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text }]
-      })),
-      generationConfig: {
-        maxOutputTokens: 500,
-      },
-    });
+    // Add chat history
+    for (const msg of chatHistory) {
+      messages.push({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.text,
+      });
+    }
 
     const prompt = `Context: ${contextType}\nUser message: ${userMessage}\n${
       searchTerm ? `Search term: ${searchTerm}` : ''
     }`;
 
-    const result = await chat.sendMessage(prompt);
-    const response = await result.response;
-    return response.text();
+    messages.push({ role: "user", content: prompt });
+
+    const response = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages,
+        max_tokens: 500,
+        temperature: 0.7,
+      }),
+    });
+
+    const data = await response.json();
+    return data.choices[0].message.content;
   } catch (error) {
     console.error("Error in conversation manager:", error);
     return "I'm having trouble responding right now. Please try again later.";

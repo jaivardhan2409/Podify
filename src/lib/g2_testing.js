@@ -1,7 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const systemInstruction = `
 You are a podcast recommender AI that understands the emotion, context, or curiosity behind a user's message. 
@@ -26,45 +24,52 @@ Contain only the topic. No explanation, no emojis, no extra text.
 You can use chat history to remember the user's previous messages and you can suggest a keyword accordingly.
 `;
 
-function createChatSession() {
-  const model = genAI.getGenerativeModel({ 
-    model: "gemini-3.5-flash",
-    systemInstruction
-  });
-
-  return model.startChat({
-    history: [],
-    generationConfig: {
-      maxOutputTokens: 1000,
-    },
-  });
-}
-
-const chatSessions = new Map();
+// Store chat histories per session
+const chatHistories = new Map();
 
 export async function getSearchTerm2(prompt, sessionId = "default2") {
   try {
-    if (!chatSessions.has(sessionId)) {
-      chatSessions.set(sessionId, createChatSession());
+    if (!chatHistories.has(sessionId)) {
+      chatHistories.set(sessionId, []);
     }
 
-    const chat = chatSessions.get(sessionId);
+    const history = chatHistories.get(sessionId);
 
-    const fullPrompt = `User message: ${prompt}`;
-    
-    const result = await chat.sendMessage(fullPrompt);
-    const response = await result.response;
+    // Build messages array
+    const messages = [
+      { role: "system", content: systemInstruction },
+      ...history,
+      { role: "user", content: `User message: ${prompt}` },
+    ];
 
-    const text = response.text();
+    const response = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages,
+        max_tokens: 200,
+        temperature: 0.3,
+      }),
+    });
+
+    const data = await response.json();
+    const text = data.choices[0].message.content;
+
+    // Store in history for memory
+    history.push({ role: "user", content: `User message: ${prompt}` });
+    history.push({ role: "assistant", content: text });
 
     const jsonStart = text.indexOf('{');
     const jsonEnd = text.lastIndexOf('}') + 1;
     const jsonString = text.slice(jsonStart, jsonEnd);
-    
-    return JSON.parse(jsonString);
 
+    return JSON.parse(jsonString);
   } catch (error) {
-    console.error("Error in Gemini with memory:", error);
+    console.error("Error in Groq with memory:", error);
     throw error;
   }
 }

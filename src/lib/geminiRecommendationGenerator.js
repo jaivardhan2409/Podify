@@ -1,7 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const systemInstruction = `
 You are a podcast recommendation expert. Your task is to:
@@ -32,36 +30,50 @@ export async function generateRecommendation(
   isMoreRequest = false
 ) {
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-3.5-flash",
-      systemInstruction
-    });
+    // Build messages array with chat history
+    const messages = [
+      { role: "system", content: systemInstruction },
+    ];
 
-    const chat = model.startChat({
-      history: chatHistory.map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text }]
-      })),
-      generationConfig: {
-        maxOutputTokens: 1000,
-      },
-    });
+    // Add chat history
+    for (const msg of chatHistory) {
+      messages.push({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.text,
+      });
+    }
 
+    // Build the current prompt
     let prompt = `User request: ${userMessage}\nSearch term: ${searchTerm}\n\n`;
-    
+
     if (isMoreRequest) {
       prompt += "The user is requesting MORE recommendations on this topic:\n";
     } else {
       prompt += "Recommended podcasts:\n";
     }
 
-    prompt += podcasts.map(p => 
+    prompt += podcasts.map(p =>
       `Title: ${p.title}\nDescription: ${p.description}\nURL: ${p.webUrl}`
     ).join('\n\n');
 
-    const result = await chat.sendMessage(prompt);
-    const response = await result.response;
-    return response.text();
+    messages.push({ role: "user", content: prompt });
+
+    const response = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages,
+        max_tokens: 1000,
+        temperature: 0.7,
+      }),
+    });
+
+    const data = await response.json();
+    return data.choices[0].message.content;
   } catch (error) {
     console.error("Error generating recommendation:", error);
     return "I couldn't generate recommendations at the moment. Please try again later.";
