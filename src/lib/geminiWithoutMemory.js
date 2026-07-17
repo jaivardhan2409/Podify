@@ -27,7 +27,7 @@ Examples:
 export async function getSearchTerm(prompt) {
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash",
+      model: "gemini-3.5-flash",
       systemInstruction
     });
 
