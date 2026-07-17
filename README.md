@@ -1,6 +1,6 @@
 # 🎧 Podify AI - Smart Podcast Recommender
 
-Podify AI is a modern, web-based podcast recommendation platform. It leverages Google Gemini AI to analyze your mood, feelings, or specific interests in a natural chat interface and matches you with high-quality podcasts from the **Podchaser API**.
+Podify AI is a modern, web-based podcast recommendation platform. It leverages **Groq-powered Llama 3.1** AI to analyze your mood, feelings, or specific interests in a natural chat interface and matches you with high-quality podcasts from the **Podchaser API**.
 
 Featuring a sleek, premium dark-mode interface with voice input, smooth micro-animations, and dynamic search results, Podify AI makes podcast discovery personal, fast, and engaging.
 
@@ -22,7 +22,7 @@ Featuring a sleek, premium dark-mode interface with voice input, smooth micro-an
 - **Frontend Framework**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **AI Engine**: [Google Gemini 3.5 Flash](https://ai.google.dev/gemini-api/docs)
+- **AI Engine**: [Groq](https://groq.com/) (Llama 3.1 8B Instant)
 - **Podcast Database**: [Podchaser GraphQL API](https://www.podchaser.com/developers)
 - **Icons**: [Lucide React](https://lucide.dev/)
 
@@ -47,8 +47,8 @@ npm install
 Create a file named `.env` in the root of the project and add your API keys:
 
 ```env
-# Gemini API Key - Get from https://aistudio.google.com/
-VITE_GEMINI_API_KEY=your_gemini_api_key_here
+# Groq API Key - Get from https://console.groq.com/
+VITE_GROQ_API_KEY=your_groq_api_key_here
 
 # Podchaser Developer Token - Get from https://www.podchaser.com/developers/signup
 VITE_PODCHASER_API_KEY=your_podchaser_api_key_here
